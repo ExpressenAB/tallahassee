@@ -12,3 +12,9 @@ global.expect = chai.expect;
 
 const nock = require("nock");
 nock.enableNetConnect("127.0.0.1");
+
+module.exports = {
+  timeout: 2000,
+  recursive: true,
+  reporter: "spec",
+};

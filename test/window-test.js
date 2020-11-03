@@ -405,6 +405,52 @@ describe("Window", () => {
 
       expect(fired).to.be.false;
     });
+
+    describe("replace(newUri)", () => {
+      it("replaces location", () => {
+        const wdw = Window({}, {
+          location: getLocation("https://www.expressen.se/nyheter/article-slug/?q=1")
+        });
+
+        wdw.location.replace("https://www.expressen.se/nyheter/");
+
+        expect(wdw.location).to.have.property("href", "https://www.expressen.se/nyheter/");
+        expect(wdw.location).to.have.property("protocol", "https:");
+        expect(wdw.location).to.have.property("host", "www.expressen.se");
+        expect(wdw.location).to.have.property("pathname", "/nyheter/");
+        expect(wdw.location).to.not.have.property("path");
+        expect(wdw.location).to.have.property("search", null);
+        expect(wdw.location).to.have.property("hash", null);
+      });
+
+      it("hash only adds hash to current location", () => {
+        const wdw = Window({}, {
+          location: getLocation("https://www.expressen.se/nyheter/")
+        });
+
+        wdw.location.replace("#atillo");
+
+        expect(wdw.location).to.have.property("href", "https://www.expressen.se/nyheter/#atillo");
+        expect(wdw.location).to.have.property("protocol", "https:");
+        expect(wdw.location).to.have.property("host", "www.expressen.se");
+        expect(wdw.location).to.have.property("pathname", "/nyheter/");
+        expect(wdw.location).to.not.have.property("path");
+        expect(wdw.location).to.have.property("search", null);
+        expect(wdw.location).to.have.property("hash", "#atillo");
+      });
+
+      it("emits unload if replaced with new uri", (done) => {
+        const wdw = Window({}, {
+          location: getLocation("https://www.expressen.se/nyheter/article-slug/?q=1")
+        });
+
+        wdw.addEventListener("unload", () => {
+          done();
+        });
+
+        wdw.location.replace("https://www.expressen.se/nyheter/");
+      });
+    });
   });
 
   describe("window.atob()", () => {

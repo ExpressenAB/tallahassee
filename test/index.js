@@ -264,7 +264,7 @@ describe("Tallahassee", () => {
         cookie: "cookie1=abc;cookie2=def"
       });
 
-      expect(browser.document).to.have.property("cookie", "cookie1=abc;cookie2=def");
+      expect(browser.document).to.have.property("cookie", "cookie1=abc; cookie2=def");
     });
 
     it("sets multiple cookies on document disregarding whitespace and empty values", async () => {
@@ -272,7 +272,7 @@ describe("Tallahassee", () => {
         cookie: " cookie1=abc; cookie2=def; ;   ;\tcookie3=ghi;; ;   ;"
       });
 
-      expect(browser.document).to.have.property("cookie", "cookie1=abc;cookie2=def;cookie3=ghi");
+      expect(browser.document).to.have.property("cookie", "cookie1=abc; cookie2=def; cookie3=ghi");
     });
 
     it("sets referer from navigation headers", async () => {

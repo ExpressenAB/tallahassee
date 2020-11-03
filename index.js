@@ -420,7 +420,7 @@ function Tallahassee(app, options = {}) {
     if (!Array.isArray(cookieList)) cookieList = cookieList.split(",").filter(Boolean);
 
     for (const cookieStr of cookieList) {
-      const cookie = Cookie(cookieStr);
+      const cookie = Cookie(cookieStr.trim());
       if (!cookie.domain) cookie.domain = cookieDomain;
       agent.jar.setCookie(cookie);
     }

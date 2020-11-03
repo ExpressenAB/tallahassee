@@ -1,6 +1,6 @@
 "use strict";
 
-const {HTMLCollection} = require("../lib/HTMLCollection");
+const {HTMLCollection, getElementsByTagName, getElementsByClassName} = require("../lib/HTMLCollection");
 const {Document} = require("../lib");
 
 describe("HTMLCollection", () => {
@@ -241,6 +241,33 @@ describe("HTMLCollection", () => {
 
       expect(elements.length).to.equal(1);
       expect(elements[0].innerText).to.equal("my new elm");
+    });
+  });
+
+  describe("getElementsByTagName", () => {
+    it("returns elements by tag name", () => {
+      const elements = getElementsByTagName(document.body, "p");
+      expect(elements.length).to.equal(1);
+
+      const elm = document.createElement("p");
+      elm.textContent = "my new elm";
+      document.body.appendChild(elm);
+
+      expect(elements.length).to.equal(2);
+    });
+  });
+
+  describe("getElementsByClassName", () => {
+    it("returns elements by class name", () => {
+      const elements = getElementsByClassName(document.body, "row");
+      expect(elements.length).to.equal(3);
+
+      const elm = document.createElement("row");
+      elm.className = "row";
+      document.body.appendChild(elm);
+
+      expect(elements.length).to.equal(4);
+      expect(elements[0].classList.contains("row")).to.be.true;
     });
   });
 });

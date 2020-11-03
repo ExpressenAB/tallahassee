@@ -23,7 +23,7 @@ describe("Document", () => {
           <body>
             <h2 id="headline">Test</h2>
             <input type="button"
-            <script>var a = 1;</script>
+            <script id="with.dot">var a = 1;</script>
             <template id="schablon" data-json="{&quot;json&quot;:&quot;&#xE5;&#xE4;&#xF6; in top document child&quot;}">
               <div id="insert" data-json="{&quot;json&quot;:&quot;&#xE5;&#xE4;&#xF6; in sub document child&quot;}">
                 <p>In a template</p>
@@ -57,6 +57,8 @@ describe("Document", () => {
 
     it("exposes documentElement with expected behaviour", async () => {
       expect(document.documentElement).to.have.property("tagName", "HTML");
+      expect(document.documentElement.ownerDocument === document, "documentElement.ownerDocument is document").to.be.true;
+      expect(document.documentElement.abrakadabra === undefined, "undefined property").to.be.true;
     });
 
     it("referrer is empty if direct call", () => {
@@ -70,6 +72,21 @@ describe("Document", () => {
         text: "<html></html>"
       });
       expect(doc).to.have.property("referrer", "https://example.com");
+    });
+
+    it("forms returns html collection with forms", () => {
+      const forms = document.forms;
+      expect(forms.length).to.equal(1);
+      expect(forms).to.be.instanceof(HTMLCollection);
+
+      const newForm = document.createElement("form");
+      newForm.id = "new_form";
+
+      document.body.appendChild(newForm);
+
+      expect(forms.length).to.equal(2);
+
+      expect(forms[1].id).to.equal("new_form");
     });
   });
 
@@ -121,11 +138,15 @@ describe("Document", () => {
     });
   });
 
-  describe("api", () => {
+  describe("getElementById", () => {
     it("getElementById returns element if found", async () => {
       const elm = document.getElementById("headline");
       expect(elm).to.be.ok;
       expect(elm.getElementById, "getElementById on element").to.be.undefined;
+    });
+
+    it("getElementById returns element with id containing dot", async () => {
+      expect(document.getElementById("with.dot")).to.be.ok;
     });
 
     it("getElementById returns null id element is not found", async () => {
@@ -206,6 +227,21 @@ describe("Document", () => {
     });
   });
 
+  describe("createComment(data)", () => {
+    it("returns a comment node", () => {
+      const comment = document.createComment("test");
+      expect(comment.textContent === "test");
+    });
+
+    it("comment is appended to parent element", () => {
+      const comment = document.createComment("test");
+
+      document.body.appendChild(comment);
+      const newComment = document.body.lastChild;
+      expect(newComment.outerHTML).to.equal("<!--test-->");
+    });
+  });
+
   describe("createElementNS", () => {
     it("returns an element", () => {
       const element = document.createElementNS("http://www.expressen.se/1999/xhtml", "div");
@@ -230,34 +266,34 @@ describe("Document", () => {
 
     it("can set cookie", () => {
       document.cookie = "_new=2";
-      expect(document.cookie).to.equal("_ga=1;_new=2");
+      expect(document.cookie).to.equal("_ga=1; _new=2");
     });
 
     it("overwrites cookie with same name", () => {
       document.cookie = "_writable=2";
       document.cookie = "_writable=3";
-      expect(document.cookie).to.equal("_ga=1;_writable=3");
+      expect(document.cookie).to.equal("_ga=1; _writable=3");
     });
 
     it("does not URI encodes when setting value", () => {
       document.cookie = "_writable=2 3";
-      expect(document.cookie).to.equal("_ga=1;_writable=2 3");
+      expect(document.cookie).to.equal("_ga=1; _writable=2 3");
     });
 
     it("can set cookie value to blank", () => {
       document.cookie = "_writable=4";
-      expect(document.cookie).to.equal("_ga=1;_writable=4");
+      expect(document.cookie).to.equal("_ga=1; _writable=4");
 
       document.cookie = "_writable=";
-      expect(document.cookie).to.equal("_ga=1;_writable=");
+      expect(document.cookie).to.equal("_ga=1; _writable=");
 
       document.cookie = "_writable=44 ";
-      expect(document.cookie).to.equal("_ga=1;_writable=44 ");
+      expect(document.cookie).to.equal("_ga=1; _writable=44 ");
     });
 
     it("can set cookie with expires", () => {
       document.cookie = "termsAware=1;path=/;domain=.expressen.se;expires=Wed, 20 Sep 2028 08:38:44 GMT";
-      expect(document.cookie).to.equal("_ga=1;termsAware=1");
+      expect(document.cookie).to.equal("_ga=1; termsAware=1");
     });
   });
 
@@ -335,6 +371,13 @@ describe("Document", () => {
       document.exitFullscreen();
       expect(document.fullscreenElement).to.eql(null);
       expect(calledCB).to.equal(false);
+    });
+  });
+
+  describe("implementation", () => {
+    it("createHTMLDocument(title) with title creates document with title", () => {
+      const newDoc = document.implementation.createHTMLDocument("New Document");
+      expect(newDoc.title).to.equal("New Document");
     });
   });
 });

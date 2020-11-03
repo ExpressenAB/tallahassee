@@ -19,6 +19,7 @@ const elementProperties = [
   "lastChild",
   "lastElementChild",
   "name",
+  "nodeName",
   "nodeType",
   "innerHTML",
   "offsetHeight",
@@ -38,6 +39,7 @@ const elementApi = [
   "getElementsByTagName",
   "getElementsByClassName",
   "getBoundingClientRect",
+  "getClientRects",
   "matches",
   "remove",
 ];
@@ -55,7 +57,7 @@ describe("elements", () => {
               <h1>Elements</h1>
               <h2 id="headline">Test</h2>
               <input type="button">
-              <script>var a = 1;</script>
+              <script id="id.with.dot" type="text/javascript">var a = 1;</script>
               <img style="display: none;height:0">
 
               <a href="//example.com">Absolute link no protocol</a>
@@ -201,6 +203,25 @@ describe("elements", () => {
       expect(img2).to.have.property("imageLoaded", "true");
     });
 
+    describe("nodeName", () => {
+      it("should return the tag name in uppercase for element", () => {
+        expect(document.getElementsByTagName("span")[0].nodeName).to.equal("SPAN");
+      });
+
+      it("should return #text for text node", () => {
+        expect(document.getElementsByTagName("span")[0].firstChild.nodeName).to.equal("#text");
+      });
+
+      it("cannot be changed", () => {
+        const elm = document.getElementsByTagName("span")[0];
+        expect(elm.nodeName = "SPANN").to.equal("SPANN");
+        expect(elm.nodeName).to.equal("SPAN");
+
+        const textNode = elm.firstChild;
+        expect(textNode.nodeName = "#string").to.equal("#string");
+        expect(textNode.nodeName).to.equal("#text");
+      });
+    });
 
     describe("nodeType", () => {
       it("should return the correct node type", () => {
@@ -216,6 +237,29 @@ describe("elements", () => {
       it("should return the correct node type for text node", () => {
         const elm = document.getElementsByTagName("span")[0];
         expect(elm.firstChild.nodeType).to.equal(3);
+      });
+    });
+
+    describe("nodeValue", () => {
+      it("returns null for element", () => {
+        expect(document.getElementsByTagName("span")[0].nodeValue).to.be.null;
+      });
+
+      it("returns text content for text node", () => {
+        expect(document.getElementsByTagName("span")[0].firstChild.nodeValue).to.equal("Text ");
+      });
+
+      it("ignored if set on element", () => {
+        const elm = document.getElementsByTagName("span")[0];
+        expect(elm.nodeValue = "Replaced ").to.equal("Replaced ");
+        expect(elm.nodeValue).to.be.null;
+      });
+
+      it("changes text content if set for text node", () => {
+        const textNode = document.getElementsByTagName("span")[0].firstChild;
+        expect(textNode.nodeValue = "Replaced ").to.equal("Replaced ");
+        expect(textNode.nodeValue).to.equal("Replaced ");
+        expect(textNode.textContent).to.equal("Replaced ");
       });
     });
 
@@ -253,6 +297,46 @@ describe("elements", () => {
         expect(document.body.parentNode === document.documentElement).to.be.true;
       });
     });
+
+    describe(".attributes", () => {
+      it("returns node attributes as list", async () => {
+        const iframe = document.getElementsByTagName("iframe")[0];
+        expect(iframe.attributes).to.have.length(2);
+        expect(iframe.attributes[0]).to.have.property("name", "class");
+        expect(iframe.attributes[0]).to.have.property("value", "test-src");
+        expect(iframe.attributes[0]).to.have.property("nodeType", 2);
+        expect(iframe.attributes[1]).to.have.property("name", "src");
+        expect(iframe.attributes[1]).to.have.property("value", "http://example.com");
+        expect(iframe.attributes[1]).to.have.property("nodeType", 2);
+      });
+
+      it(".attributes.getNamedItem(name) returns attribute", async () => {
+        const elm = document.getElementsByTagName("iframe")[0];
+        const attribute = elm.attributes.getNamedItem("src");
+        expect(attribute).to.be.ok;
+        expect(attribute).to.have.property("name", "src");
+        expect(attribute).to.have.property("value", "http://example.com");
+      });
+    });
+
+    describe("added custom properties", () => {
+      it("are kept between get element", async () => {
+        const elm1 = document.getElementsByTagName("iframe")[0];
+
+        const custom = {};
+        elm1.jQuery311086775509839399971 = custom;
+
+        const elm2 = document.getElementsByTagName("iframe")[0];
+        expect(elm2.jQuery311086775509839399971).to.equal(custom);
+      });
+    });
+
+    describe("undefined property", () => {
+      it("returns undefined", async () => {
+        const elm1 = document.getElementsByTagName("iframe")[0];
+        expect(elm1.abrakadabra).to.be.undefined;
+      });
+    });
   });
 
   describe("Methods", () => {
@@ -285,6 +369,28 @@ describe("elements", () => {
       it("returns elements that match class names separated any number of whitespaces", () => {
         const elms = document.body.getElementsByClassName("row \n\t     row--boat   \n\t ");
         expect(elms.length).to.equal(1);
+      });
+    });
+
+    describe("getElementsByTagName(name)", () => {
+      let document;
+      beforeEach(() => {
+        document = Document({
+          text: `
+            <html>
+              <body>
+                <div class="row"></div>
+                <div class="row row--boat">
+                  <span class="row--boat">Wide</span>
+                </div>
+              </body>
+            </html>`
+        });
+      });
+
+      it("returns elements that match tag name", () => {
+        const elms = document.body.getElementsByTagName("div");
+        expect(elms.length).to.equal(2);
       });
     });
 
@@ -396,6 +502,67 @@ describe("elements", () => {
         expect(() => {
           parent.removeChild(removed);
         }).to.throw(DOMException, "Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.");
+      });
+    });
+
+    describe("replaceChild(newChild, oldChild)", () => {
+      let document;
+      beforeEach(() => {
+        document = Document({
+          text: `
+            <html>
+              <body id="grandparent">
+                <div id="parent-1">
+                  <span class="child">åäö</span>
+                </div>
+                <div id="parent-2"></div>
+              </body>
+            </html>`
+        });
+      });
+
+      it("replaces child element and returns old child", () => {
+        const parent = document.getElementById("parent-1");
+        const child = document.getElementsByClassName("child")[0];
+        expect(parent.children.length).to.equal(1);
+
+        const newChild = document.createElement("div");
+        newChild.id = "newChild";
+
+        const oldChild = parent.replaceChild(newChild, child);
+
+        expect(parent.firstElementChild.outerHTML).to.equal("<div id=\"newChild\"></div>");
+        expect(oldChild === child).to.be.true;
+        expect(parent.children.length, "children length").to.equal(1);
+      });
+
+      it("replaces child text node", () => {
+        const parent = document.getElementById("grandparent");
+        const child = document.getElementById("parent-1");
+        expect(parent.children.length).to.equal(2);
+
+        const newChild = document.createTextNode("new content");
+
+        const oldChild = parent.replaceChild(newChild, child);
+
+        expect(parent.textContent.trim()).to.equal("new content");
+        expect(oldChild === child).to.be.true;
+        expect(parent.children.length, "children should only contain elements").to.equal(1);
+      });
+
+      it("throws if removed twice", () => {
+        const parent = document.getElementById("parent-1");
+        const child = document.getElementsByClassName("child")[0];
+        expect(parent.children.length).to.equal(1);
+
+        const newChild = document.createElement("div");
+        newChild.id = "newChild";
+
+        parent.replaceChild(newChild, child);
+
+        expect(() => {
+          parent.replaceChild(newChild, child);
+        }).to.throw(DOMException, "Failed to execute 'replaceChild' on 'Node': The node to be replaced is not a child of this node.");
       });
     });
   });
@@ -765,6 +932,7 @@ describe("elements", () => {
             <body>
               <h2>Test</h2>
               <script>var a = 1;</script>
+              <script type="text/ng-template"><div class="modal"></div></script>
             </body>
           </html>`
       });
@@ -788,12 +956,21 @@ describe("elements", () => {
       expect(document.getElementsByTagName("script")[0]).to.have.property("textContent", "var a = 1;");
     });
 
+    it(".text also returns text content of script element", () => {
+      expect(document.getElementsByTagName("script")[1]).to.have.property("text", "<div class=\"modal\"></div>");
+    });
+
     it("sets text content of script element", () => {
       const elm = document.getElementsByTagName("script")[0];
       elm.textContent = "var b = 2;";
       expect(elm).to.have.property("textContent", "var b = 2;");
     });
 
+    it("sets text content of text node", () => {
+      const textNode = document.getElementsByTagName("h2")[0].firstChild;
+      textNode.textContent = "Merge me";
+      expect(textNode).to.have.property("textContent", "Merge me");
+    });
   });
 
   describe(".firstElementChild", () => {
@@ -1156,161 +1333,6 @@ describe("elements", () => {
       expect(elmCloneChild).to.be.ok;
 
       expect(elmCloneChild === elmChild).to.be.false;
-    });
-  });
-
-  describe("forms", () => {
-    let document;
-    beforeEach(() => {
-      document = Document({
-        text: `
-          <html>
-            <body>
-              <h2>Test <b>title</b></h2>
-              <form id="get-form" type="get" action="/">
-                <input type="checkbox" value="1">
-                <input type="checkbox" value="2" checked="checked">
-                <select>
-                  <option value="1">1</option>
-                  <option value="2" selected="selected">2</option>
-                </select>
-                <label>Description<textarea name="multiline"></textarea></label>
-                <button type="submit">Submit</submit>
-                <button>Submit</submit>
-                <button type="reset">Reset</submit>
-              </form>
-            </body>
-          </html>`
-      });
-    });
-
-    it("has submit method", () => {
-      expect(document.getElementById("get-form")).to.have.property("submit").that.is.a("function");
-    });
-
-    it("has reset method", () => {
-      expect(document.getElementById("get-form")).to.have.property("reset").that.is.a("function");
-      expect(document.getElementById("get-form")).to.have.property("reset").that.is.a("function");
-    });
-
-    it("returns the same form twice", () => {
-      expect(document.getElementById("get-form") === document.getElementById("get-form")).to.be.true;
-    });
-
-    it("submit button has associated form property", () => {
-      const [form] = document.getElementsByTagName("form");
-      const [button] = document.getElementsByTagName("button");
-
-      expect(form === button.form).to.be.true;
-    });
-
-    it("submit button click emits submit on document", (done) => {
-      const [button] = document.getElementsByTagName("button");
-
-      document.addEventListener("submit", () => done());
-
-      button.click();
-    });
-
-    it("submit button click emits submit on form", (done) => {
-      const [form] = document.getElementsByTagName("form");
-      const [button] = document.getElementsByTagName("button");
-
-      form.addEventListener("submit", () => done());
-
-      button.click();
-    });
-
-    it("typeless button click emits submit on form", (done) => {
-      const [form] = document.getElementsByTagName("form");
-      const [, button] = document.getElementsByTagName("button");
-
-      form.addEventListener("submit", () => done());
-
-      button.click();
-    });
-
-    it("submit sets event target to form", (done) => {
-      const form = document.getElementsByTagName("form")[0];
-      const button = document.getElementsByTagName("button")[0];
-
-      document.addEventListener("submit", (event) => {
-        expect(event.target === form, "event target is not form").to.be.true;
-        done();
-      });
-
-      button.click();
-    });
-
-    it("reset button click emits reset on form", (done) => {
-      const form = document.getElementsByTagName("form")[0];
-      const button = form.getElementsByTagName("button")[2];
-
-      form.addEventListener("reset", () => done());
-
-      button.click();
-    });
-
-    it("reset form resets form elements", () => {
-      const form = document.getElementsByTagName("form")[0];
-      const select = form.getElementsByTagName("select")[0];
-      const checkboxes = form.getElementsByTagName("input");
-
-      select.options[0].selected = true;
-
-      checkboxes[0].checked = true;
-      checkboxes[1].checked = false;
-
-      form.reset();
-
-      expect(select.options[0].selected).to.be.false;
-      expect(select.options[1].selected).to.be.true;
-
-      expect(checkboxes[0].checked).to.be.false;
-      expect(checkboxes[1].checked).to.be.true;
-    });
-
-    it("input can get and set value", () => {
-      const input = document.getElementsByTagName("input")[0];
-      expect(input).to.have.property("value", "1");
-      input.value = 3;
-      expect(input).to.have.property("value", "3");
-    });
-
-    it("textarea can get and set value", () => {
-      const input = document.getElementsByTagName("textarea")[0];
-      expect(input).to.have.property("value", "");
-      input.value = "line 1\nline 2";
-      expect(input).to.have.property("value", "line 1\nline 2");
-    });
-
-    it("set innerHTML on textarea updates value", () => {
-      const input = document.getElementsByTagName("textarea")[0];
-      input.innerHTML = "&lt;p&gt;A test&lt;/p&gt;";
-      expect(input.value).to.equal("<p>A test</p>");
-    });
-
-    it("set innerText on textarea updates value", () => {
-      const input = document.getElementsByTagName("textarea")[0];
-      input.innerText = "&lt;p&gt;A test&lt;/p&gt;";
-      expect(input.value).to.equal("&lt;p&gt;A test&lt;/p&gt;");
-    });
-
-    it("button can get and set value", () => {
-      const button = document.getElementsByTagName("button")[0];
-      expect(button).to.have.property("value", "");
-      button.value = "send";
-      expect(button).to.have.property("value", "send");
-    });
-
-    it("form property elements return form fields", () => {
-      const form = document.getElementsByTagName("form")[0];
-      expect(form).to.have.property("elements");
-      const elements = form.elements;
-      expect(elements.length).to.equal(7);
-      for (let i = 0; i < elements.length; ++i) {
-        expect(["INPUT", "BUTTON", "SELECT", "TEXTAREA"].indexOf(elements[i].tagName), elements[i].tagName).to.be.above(-1);
-      }
     });
   });
 

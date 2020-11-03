@@ -181,7 +181,7 @@ describe("cookies", () => {
       });
       browser.jar.setCookie("regular_cookie=1");
       browser.jar.setCookie("secure_cookie=1; secure=true");
-      expect(browser.document.cookie).to.equal("regular_cookie=1;secure_cookie=1");
+      expect(browser.document.cookie).to.equal("regular_cookie=1; secure_cookie=1");
     });
   });
 
@@ -218,7 +218,7 @@ describe("cookies", () => {
       await browser.window.fetch("http://api.expressen.se/");
 
       const response = await browser.window.fetch("/req").then((res) => res.json());
-      expect(response.cookie).to.equal("apiToken=1; remoteToken=2");
+      expect(response.cookie).to.equal("apiToken=1;remoteToken=2");
     });
 
     it("redirect can overwrite cookies", async () => {
